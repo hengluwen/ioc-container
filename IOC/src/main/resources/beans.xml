@@ -3,6 +3,6 @@
     <bean id="user" class="com.ioc.model.User" />
     <bean id="userDao" class="com.ioc.dao.impl.UserDaoImpl" />
     <bean id="userService" class="com.ioc.service.UserService">
-        <property name="userDao" bean="userDao" />
+        <property name="userDao" ref="userDao" />
     </bean>
 </beans>

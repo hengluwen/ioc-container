@@ -19,8 +19,9 @@ public class ClassPathXmlApplicationContext implements BeanFactory{
 
     private Map<String , Object> beans = new HashMap<String, Object>();
 
-    public ClassPathXmlApplicationContext() throws JDOMException,IOException,InstantiationException,IllegalAccessException,
-            ClassNotFoundException,SecurityException,NoSuchMethodException,IllegalArgumentException,InvocationTargetException{
+    public ClassPathXmlApplicationContext() throws JDOMException,IOException,InstantiationException, ClassNotFoundException,
+            SecurityException,NoSuchMethodException,IllegalArgumentException,InvocationTargetException, IllegalAccessException{
+
         SAXBuilder sb = new SAXBuilder();
 
         //构造文档对象
@@ -44,23 +45,33 @@ public class ClassPathXmlApplicationContext implements BeanFactory{
             //获取property 进行依赖注入
             for(Element propertyElement : (List<Element>) element.getChildren()){
                 String name = propertyElement.getAttributeValue("name");
-
-                String bean = propertyElement.getAttributeValue("bean");
-
-                Object beanObj = this.getBean(bean);
-                // 形成setXXX方法名
-                String methodName = "set" + name.substring(0,1).toUpperCase() + name.substring(1);
-                // 反射机制对方法进行调用，将对象在加载bean时就注入到环境上下文中
-
-                Method m = o.getClass().getMethod(methodName,beanObj.getClass().getInterfaces()[0]);
-
-                // 执行注入,相当于执行了一个setXXX(args..)的方法
-                m.invoke(o,beanObj);
+                String bean = propertyElement.getAttributeValue("ref");
+                if(null != name && !"".equals(name) && null != bean && !"".equals(bean))
+                    setMethodFieldValue(name,bean,o);
             }
         }
-
     }
 
+    public void setMethodFieldValue(String name, String bean ,Object o ) throws NoSuchMethodException,IllegalArgumentException,InvocationTargetException,
+            IllegalAccessException{
+        Object beanObj = this.getBean(bean);
+        // 形成setXXX方法名
+        String methodName = returnSetMethodName(name);
+        // 反射机制对方法进行调用，将对象在加载bean时就注入到环境上下文中
+        Method method = o.getClass().getMethod(methodName, beanObj.getClass().getInterfaces()[0]);
+        //获取method列表
+        Method[] ms = o.getClass().getMethods();
+        for(Method m : ms){
+            if(m.equals(method)){
+                // 执行注入,相当于执行了一个setXXX(args..)的方法
+                method.invoke(o,beanObj);
+            }
+        }
+    }
+
+    public String returnSetMethodName(String methodName){
+        return null == methodName || "".equals(methodName) ? null : "set" + methodName.substring(0,1).toUpperCase() + methodName.substring(1);
+    }
 
     public Object getBean(String name) {
         return this.beans.get(name);
